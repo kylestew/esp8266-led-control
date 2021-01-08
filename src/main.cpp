@@ -26,14 +26,20 @@ struct TPM2NET_HEADER {
 // ========================================
 
 // == Neopixel CONFIG =====================
-#define PIXEL_PIN 2
-#define PIXEL_COUNT 6
+#define PIXEL_COUNT 8
+#define PIXEL_PIN 14
+
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> pixels(PIXEL_COUNT, PIXEL_PIN);
 // ========================================
 
 void setup() {
     Serial.begin(9600);
     Serial.println();
     Serial.println();
+
+    // reset pixels
+    pixels.Begin();
+    pixels.Show();
 
     Serial.print("Connecting to ");
     Serial.println(WIFI_SSID);
@@ -74,11 +80,14 @@ void loop() {
         udp.read(data, payloadLength);
 
         if (udp.read() == TPM2_BLOCK_END_BYTE) {
-            // fin!
-            Serial.println("");
-            Serial.print(data[0]);
-            Serial.print(data[1]);
-            Serial.print(data[2]);
+            int count = payloadLength / 3;
+            count = min(count, PIXEL_COUNT);
+
+            pixels.Begin();
+            for (int i = 0; i < count; i++) {
+                pixels.SetPixelColor(i, RgbColor(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]));
+            }
+            pixels.Show();
         } else {
             Serial.println("Malformed packed received.");
         }
